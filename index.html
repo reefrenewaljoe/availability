@@ -4,12 +4,19 @@
 <base target="_top">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b7a85">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Availability">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
   :root {
     --bg: #f3f7f8; --card: #ffffff; --ink: #14272e; --muted: #5d737b; --line: #dbe5e8;
     --brand: #0b7a85; --brand-ink: #ffffff; --brand-soft: #e1f2f3;
     --away: #c2413a; --away-soft: #fbe7e5; --avail: #2e8a4a; --avail-soft: #e2f3e7;
     --wait: #8a6a12; --wait-soft: #fbf1d6;
+    --evt: #2f5fb3; --evt-soft: #e3ebfa;
     --radius: 14px;
   }
   @media (prefers-color-scheme: dark) {
@@ -18,6 +25,7 @@
       --brand: #35b3bd; --brand-ink: #062a2e; --brand-soft: #173a3e;
       --away: #f07a72; --away-soft: #3a1f1e; --avail: #6fcf8c; --avail-soft: #1a3324;
       --wait: #e7c15c; --wait-soft: #3a3118;
+      --evt: #8fb0f0; --evt-soft: #1d2a44;
     }
   }
   * { box-sizing: border-box; }
@@ -115,6 +123,18 @@
   .legend .tag { display: inline-block; width: 14px; height: 14px; padding: 0; border-radius: 4px; }
   .legend .tag.avail { background: var(--avail); } .legend .tag.pend { background: #e2b428; }
   .legend .tag.away { background: var(--away); }
+  .tag.evt { background: var(--evt-soft); color: var(--evt); }
+  .legend .tag.evt { background: var(--evt); }
+  .list li.flash { background: var(--brand-soft); border-radius: 10px; padding: 10px; }
+  .seg.reply { margin-top: 10px; } .seg.reply button { font-size: 14px; padding: 10px 4px; }
+  .seg button:disabled { opacity: .6; }
+  .headrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+  .headrow h2 { margin: 0; }
+  details.replies { margin-top: 6px; font-size: 14px; }
+  details.replies summary { cursor: pointer; font-weight: 600; color: var(--brand); padding: 4px 0; }
+  .steps { margin: 8px 0 0; padding-left: 22px; font-weight: 400; } .steps li { margin: 4px 0; }
+  .preview { font-size: 14px; background: var(--bg); border-radius: 10px; padding: 10px 12px; margin-top: 14px; }
+  .preview div + div { margin-top: 4px; }
   .filter { margin: 0 0 12px; }
   h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 16px 0 4px; }
   h3:first-of-type { margin-top: 0; }
@@ -140,6 +160,17 @@
 <main>
   <div id="loading">Loading…</div>
 
+  <!-- iPhone: how to get notifications (shown on request) -->
+  <section id="iosHelp" class="card hidden">
+    <div class="headrow"><h2>🔔 Notifications on iPhone</h2><button class="link" id="iosHelpClose">Close</button></div>
+    <p class="hint" style="margin-top:0">iPhones only allow notifications from apps on the Home Screen (iOS 16.4 or later):</p>
+    <ol class="steps">
+      <li>Tap the <b>Share</b> button <span aria-hidden="true">⬆️</span> (bottom of Safari, or top right in Chrome).</li>
+      <li>Choose <b>Add to Home Screen</b>, then <b>Add</b>.</li>
+      <li>Open <b>Availability</b> from your Home Screen, and tap <b>Turn on</b> next to 🔔.</li>
+    </ol>
+  </section>
+
   <!-- Access code -->
   <section id="lock" class="card hidden">
     <h2>Enter access code</h2>
@@ -162,6 +193,7 @@
       </div>
 
       <div id="notifyLine" class="hint hidden"></div>
+      <div id="pushLine" class="hint hidden"></div>
 
       <div id="notifyBox" class="hidden" style="margin-top:12px">
         <div class="banner" style="display:block">
@@ -173,6 +205,7 @@
             <button class="btn small" id="notifyYes">Yes, email me</button>
             <button class="btn small ghost" id="notifyNo" style="margin:0">No thanks</button>
           </div>
+          <div id="notifyPushRow" class="hint hidden" style="margin-top:12px"></div>
         </div>
       </div>
 
@@ -183,6 +216,11 @@
           <button class="btn small" id="newNameBtn" style="flex:0 0 auto">Add me</button>
         </div>
       </div>
+    </div>
+
+    <div class="card hidden" id="evInvites">
+      <h2>📣 Upcoming events</h2>
+      <ul class="list" id="evInviteList"></ul>
     </div>
 
     <div class="card hidden" id="formCard">
@@ -265,6 +303,7 @@
         <span><span class="tag avail">&nbsp;</span> Available (approved)</span>
         <span><span class="tag pend">&nbsp;</span> Pending approval</span>
         <span><span class="tag away">&nbsp;</span> Away</span>
+        <span><span class="tag evt">&nbsp;</span> Event</span>
       </div>
     </div>
     <div class="card">
@@ -277,8 +316,41 @@
   <section id="tab-admin" class="hidden">
     <div class="card">
       <div class="banner"><span id="adminWho"></span><button class="link" id="adminOut">Sign out</button></div>
+      <div id="adminPushLine" class="hint hidden"></div>
       <h3 style="margin-top:14px">Waiting for approval</h3>
       <ul class="list" id="pendList"></ul>
+    </div>
+    <div class="card">
+      <div class="headrow"><h2>📣 Events</h2><button class="btn small" id="evNewBtn">New event</button></div>
+      <p class="hint" style="margin-top:0">Ask volunteers who's available for a specific day.</p>
+      <div id="evForm" class="hidden">
+        <label for="evTitle">What</label>
+        <input id="evTitle" maxlength="80" placeholder="e.g. Outplanting at Pickles Reef">
+        <label for="evDate">Date</label>
+        <input type="date" id="evDate">
+        <label class="check"><input type="checkbox" id="evAllDay" checked> All day</label>
+        <div id="evTimes" class="row hidden">
+          <div><label for="evT1">Start time</label><input type="time" id="evT1" value="08:00"></div>
+          <div><label for="evT2">End time</label><input type="time" id="evT2" value="12:00"></div>
+        </div>
+        <label>Activity</label>
+        <div class="boxes">
+          <label id="evLblLand"><input type="checkbox" id="evLand"> 🌴 Land</label>
+          <label id="evLblWater"><input type="checkbox" id="evWater"> 🌊 Water</label>
+        </div>
+        <label for="evNote">Note (optional)</label>
+        <textarea id="evNote" maxlength="300" placeholder="e.g. Boat leaves 8am from the marina"></textarea>
+        <label for="evAud">Send to</label>
+        <select id="evAud">
+          <option value="notAway">Everyone not marked away that day</option>
+          <option value="all">Everyone</option>
+          <option value="activity">Only volunteers who've offered this activity before</option>
+        </select>
+        <div class="preview" id="evPreview"></div>
+        <button class="btn" id="evSend">Send</button>
+        <button class="btn ghost" id="evCancel">Cancel</button>
+      </div>
+      <ul class="list" id="evList" style="margin-top:8px"></ul>
     </div>
     <div class="card">
       <h3>Approved (upcoming)</h3>
@@ -290,7 +362,13 @@
 
 <script>
 const S = { vols: [], entries: [], today: '', org: 'RRUSA', me: '', status: 'Available', month: null, selected: '',
-  code: '', tab: 'add', days: [], editing: '', admin: '', pin: '', filter: 'All', search: '' };
+  code: '', tab: 'add', days: [], editing: '', admin: '', pin: '', filter: 'All', search: '',
+  events: [], push: false, focusEvent: '' };
+// Links from notifications/emails: ?event=ID opens that event, ?tab=approve opens the Approve tab.
+const QS = new URLSearchParams(location.search);
+S.focusEvent = QS.get('event') || '';
+const WANT_TAB = QS.get('tab') || '';
+if (QS.toString()) { try { history.replaceState(null, '', location.pathname); } catch (e) {} }
 const NEW = '__new__';
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const ACT_ICON = { Land: '🌴', Water: '🌊' };
@@ -387,8 +465,13 @@ async function load() {
     apply(d);
     $('loading').classList.add('hidden');
     switchTab('add');
+    focusEventCard();
     const pin = store.get('pin');
-    if (pin) adminSignIn(pin, true);
+    if (pin) {
+      await adminSignIn(pin, true);
+      if (WANT_TAB === 'approve' && S.admin) switchTab('admin');
+    }
+    initPush();
   } catch (err) {
     $('loading').classList.remove('hidden');
     $('loading').textContent = 'Could not load: ' + errMsg(err);
@@ -396,6 +479,7 @@ async function load() {
 }
 function apply(d) {
   S.vols = d.volunteers; S.entries = d.entries; S.today = d.today;
+  S.events = d.events || []; S.push = !!d.push;
   if (d.org) S.org = d.org;
   if (d.title) { $('title').textContent = d.title; document.title = d.title; }
   if (S.editing && !S.entries.some(e => e.id === S.editing)) stopEditing();
@@ -418,7 +502,7 @@ function switchTab(t) {
 
 function render() {
   if (!S.today || !S.month) return;
-  renderWho(); renderForm(); renderMine(); renderMonth(); renderDay(); renderAdmin();
+  renderWho(); renderInvites(); renderForm(); renderMine(); renderMonth(); renderDay(); renderAdmin();
 }
 
 /* ---------- NAME SEARCH ---------- */
@@ -450,13 +534,22 @@ function renderWho() {
 function renderNotify() {
   const v = vol(S.me);
   $('notifyLine').classList.toggle('hidden', !v);
-  if (!v) { S.askNotify = false; $('notifyBox').classList.add('hidden'); return; }
+  if (!v) { S.askNotify = false; $('notifyBox').classList.add('hidden'); $('pushLine').classList.add('hidden'); return; }
   $('notifyLine').innerHTML = v.notify === 'Yes'
     ? `📧 Approval emails: <b>on</b> (${esc(v.email)}) · <button class="link" data-notify-open>Change</button>`
     : `📧 Approval emails: off · <button class="link" data-notify-open>Turn on</button>`;
   $('notifyBox').classList.toggle('hidden', !S.askNotify);
   $('notifyOnFile').textContent = v.email ? 'On file: ' + v.email + '. Leave blank to keep it.' : '';
   $('notifyNo').textContent = v.notify === 'Yes' ? 'Turn off' : 'No thanks';
+
+  const pl = pushLineHtml(pushOnFor('push_me', S.me), 'Phone notifications');
+  $('pushLine').innerHTML = pl;
+  $('pushLine').classList.toggle('hidden', !pl);
+  const st = pushState(), on = pushOnFor('push_me', S.me);
+  $('notifyPushRow').innerHTML = on ? ''
+    : st === 'ready' ? '🔔 Or get a notification on this phone: <button class="btn small" data-push="on">Turn on</button>'
+    : st === 'install' ? '🔔 Want phone notifications instead? <button class="link" data-ios-help>See how on iPhone</button>' : '';
+  $('notifyPushRow').classList.toggle('hidden', !$('notifyPushRow').innerHTML);
 }
 function openNotify() {
   S.askNotify = true; $('notifyEmail').value = ''; renderNotify();
@@ -665,13 +758,14 @@ $('mine').onclick = async ev => {
 };
 
 /* ---------- SCHEDULE TAB ---------- */
-const passesFilter = e => S.filter === 'All' || e.status !== 'Available' || e.activities.includes(S.filter);
-function dayInfo(d) {
+const passesFilter = (e, f) => f === 'All' || e.status !== 'Available' || e.activities.includes(f);
+function dayInfo(d, filter) {
   // One row per volunteer per status; a person can appear in both lists
   // (e.g. available in the morning, away in the afternoon).
+  const f = filter || S.filter;
   const avail = [], pend = [], away = [];
   S.vols.forEach(v => {
-    const es = S.entries.filter(e => e.volunteer === v.name && covers(e, d) && passesFilter(e))
+    const es = S.entries.filter(e => e.volunteer === v.name && covers(e, d) && passesFilter(e, f))
       .sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
     const a = es.filter(e => e.status === 'Available' && e.approval === 'Approved');
     const p = es.filter(e => e.status === 'Available' && e.approval !== 'Approved');
@@ -694,8 +788,10 @@ function renderMonth() {
     if (i >= 35 && d.getMonth() !== m - 1) break;
     const info = dayInfo(s);
     const away = info.away.length, avail = info.avail.length, pend = info.pend.length;
+    const evs = S.events.filter(ev => ev.date === s).length;
     html += `<button class="day${d.getMonth() !== m - 1 ? ' out' : ''}${s === S.today ? ' today' : ''}${s === S.selected ? ' sel' : ''}" data-d="${s}">
       <span class="n">${d.getDate()}</span>
+      ${evs ? `<span class="tag evt">📣 event</span>` : ''}
       ${avail ? `<span class="tag avail">${avail} avail</span>` : ''}
       ${pend ? `<span class="tag pend">${pend} pend</span>` : ''}
       ${away ? `<span class="tag away">${away} away</span>` : ''}
@@ -738,7 +834,16 @@ function renderDay() {
   };
   const list = (rows, empty) => `<ul class="list">${rows.length ? rows.join('') : `<li class="empty">${empty}</li>`}</ul>`;
   const what = S.filter === 'All' ? '' : ' for ' + S.filter.toLowerCase();
-  $('dayDetail').innerHTML =
+  const evs = S.events.filter(ev => ev.date === d);
+  const evHtml = evs.length ? `<h3>📣 Event${evs.length > 1 ? 's' : ''}</h3><ul class="list">` + evs.map(ev => {
+    const r = replies(ev);
+    return `<li class="top"><div class="grow"><div><b>${esc(ev.title)}</b></div>
+      <div class="sub">${esc(ev.startTime ? niceTime(ev.startTime) + '–' + niceTime(ev.endTime) : 'All day')} · ${esc(actsText(ev))}</div>
+      ${ev.note ? `<div class="sub">${esc(ev.note)}</div>` : ''}
+      <div class="sub">✅ ${r.yes.length} coming · ❌ ${r.no.length} can't</div></div>
+      <span class="pill" style="background:var(--evt-soft);color:var(--evt)">Event</span></li>`;
+  }).join('') + '</ul>' : '';
+  $('dayDetail').innerHTML = evHtml +
     `<h3>✅ Available${what} (${avail.length})</h3>` + list(avail.map(x => item(x, 'avail')), 'No approved availability' + what + '.') +
     (pend.length ? `<h3>⏳ Pending approval (${pend.length})</h3>` + list(pend.map(x => item(x, 'pend')), '') : '') +
     `<h3>❌ Away (${away.length})</h3>` + list(away.map(x => item(x, 'away')), 'Nobody has said they\'re away.');
@@ -767,6 +872,10 @@ async function adminSignIn(pin, quiet) {
   $('pinBtn').disabled = false;
 }
 $('adminOut').onclick = () => {
+  // Stop admin notifications on this device too.
+  const tok = store.get('push_token');
+  if (store.get('push_admin') && tok && S.pin) call('saveAdminPush', S.pin, tok, false, '', S.code).catch(() => {});
+  store.set('push_admin', '');
   S.admin = ''; S.pin = ''; store.set('pin', '');
   renderAdmin(); switchTab('add'); toast('Signed out');
 };
@@ -777,6 +886,11 @@ function renderAdmin() {
   $('adminLink').classList.toggle('hidden', on);
   if (!on) return;
   $('adminWho').textContent = 'Signed in as ' + S.admin;
+  let apl = pushLineHtml(pushOnFor('push_admin', S.admin), 'Notify me of new availability');
+  if (apl && pushState() === 'ready' && !S.push) apl += '<br>⚠️ Push isn\'t set up on the server yet (README, "Push notifications").';
+  $('adminPushLine').innerHTML = apl;
+  $('adminPushLine').classList.toggle('hidden', !apl);
+  renderEvents();
   const upcoming = S.entries.filter(e => e.status === 'Available' && e.end >= S.today)
     .sort((a, b) => a.start.localeCompare(b.start));
   const pend = upcoming.filter(e => e.approval !== 'Approved');
@@ -810,6 +924,280 @@ async function approve(id, yes, btn) {
 }
 $('pendList').onclick = ev => { const b = ev.target.closest('[data-approve]'); if (b) approve(b.dataset.approve, true, b); };
 $('apprList').onclick = ev => { const b = ev.target.closest('[data-unapprove]'); if (b) approve(b.dataset.unapprove, false, b); };
+
+/* ---------- EVENTS (volunteer side) ---------- */
+const upcomingEvents = () => S.events.filter(ev => ev.date >= S.today)
+  .sort((a, b) => (a.date + (a.startTime || '')).localeCompare(b.date + (b.startTime || '')));
+function replies(ev) {
+  const rs = S.entries.filter(e => e.event === ev.id);
+  const yes = rs.filter(e => e.status === 'Available').map(e => e.volunteer);
+  const no = rs.filter(e => e.status !== 'Available').map(e => e.volunteer);
+  const quiet = (ev.invited || []).filter(n => !yes.includes(n) && !no.includes(n) && vol(n));
+  return { yes, no, quiet };
+}
+const evWhen = ev => niceDate(ev.date, { weekday: 'long', month: 'short', day: 'numeric' }) +
+  (ev.startTime ? ', ' + niceTime(ev.startTime) + '–' + niceTime(ev.endTime) : ' (all day)');
+
+function renderInvites() {
+  const list = upcomingEvents();
+  $('evInvites').classList.toggle('hidden', !list.length);
+  if (!list.length) return;
+  const picked = !!vol(S.me);
+  $('evInviteList').innerHTML = list.map(ev => {
+    const mine = picked ? S.entries.find(e => e.event === ev.id && e.volunteer === S.me) : null;
+    const r = mine ? mine.status : '';
+    return `<li class="top${ev.id === S.focusEvent ? ' flash' : ''}" data-ev-card="${esc(ev.id)}"><div class="grow">
+      <div><b>${esc(ev.title)}</b></div>
+      <div style="margin-top:2px">${esc(evWhen(ev))}</div>
+      <div class="acts" style="margin-top:2px">${esc(actsText(ev))}</div>
+      ${ev.note ? `<div class="sub">${esc(ev.note)}</div>` : ''}
+      ${picked ? `<div class="seg reply">
+          <button class="avail${r === 'Available' ? ' on' : ''}" data-reply="yes" data-ev="${esc(ev.id)}">✅ I'm available</button>
+          <button class="away${r === 'Unavailable' ? ' on' : ''}" data-reply="no" data-ev="${esc(ev.id)}">❌ Can't make it</button>
+        </div>
+        ${r === 'Available' ? `<div class="reach">Thanks! You're on the list. ${esc(S.org)} will reach out.</div>` : ''}`
+        : '<p class="hint">Pick your name above to reply.</p>'}
+    </div></li>`;
+  }).join('');
+}
+$('evInviteList').onclick = async ev => {
+  const b = ev.target.closest('[data-reply]');
+  if (!b || b.classList.contains('on')) return;
+  const yes = b.dataset.reply === 'yes';
+  b.parentElement.querySelectorAll('button').forEach(x => x.disabled = true);
+  try {
+    S.focusEvent = '';
+    apply(await call('respondEvent', b.dataset.ev, S.me, yes, S.code));
+    toast(yes ? 'Thanks! You\'re on the list ✓' : 'Got it, thanks for letting us know.');
+  } catch (err) { toast(errMsg(err)); render(); }
+};
+function focusEventCard() {
+  if (!S.focusEvent) return;
+  const li = document.querySelector(`[data-ev-card="${CSS.escape(S.focusEvent)}"]`);
+  if (li) setTimeout(() => li.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
+  else { toast('That event has been cancelled or has passed.'); S.focusEvent = ''; }
+}
+
+/* ---------- EVENTS (admin side) ---------- */
+function evDraft() {
+  const allDay = $('evAllDay').checked;
+  return {
+    title: $('evTitle').value.trim(), date: $('evDate').value,
+    startTime: allDay ? '' : $('evT1').value, endTime: allDay ? '' : $('evT2').value,
+    activities: ['Land', 'Water'].filter(a => $('ev' + a).checked),
+    note: $('evNote').value.trim(), audience: $('evAud').value,
+  };
+}
+/* Same rules as audienceFor_() in Code.gs, used for the preview. */
+function audienceOf(ev) {
+  const overlaps = e => !e.startTime || !ev.startTime || (e.startTime < ev.endTime && ev.startTime < e.endTime);
+  return S.vols.filter(v => {
+    if (ev.audience === 'all') return true;
+    const mine = S.entries.filter(e => e.volunteer === v.name);
+    if (mine.some(e => e.status === 'Unavailable' && covers(e, ev.date) && overlaps(e))) return false;
+    if (ev.audience === 'activity') return mine.some(e => e.status === 'Available' && e.activities.some(a => ev.activities.includes(a)));
+    return true;
+  });
+}
+function renderEvPreview() {
+  $('evTimes').classList.toggle('hidden', $('evAllDay').checked);
+  $('evLblLand').classList.toggle('on', $('evLand').checked);
+  $('evLblWater').classList.toggle('on', $('evWater').checked);
+  const ev = evDraft();
+  if (!ev.date) { $('evPreview').innerHTML = 'Pick a date to see who\'s free.'; return; }
+  const info = dayInfo(ev.date, 'All');
+  const names = rows => rows.length ? esc(rows.map(x => x.v.name).join(', ')) : '<span class="sub">nobody</span>';
+  const ppl = audienceOf(ev);
+  let push = 0, email = 0;
+  ppl.forEach(v => { if (S.push && v.push) push++; else if (v.email && v.notify !== 'No') email++; });
+  const none = ppl.length - push - email;
+  $('evPreview').innerHTML =
+    `<div><b>Already on the calendar for ${esc(niceDate(ev.date))}:</b></div>` +
+    `<div>✅ Available: ${names(info.avail)}</div>` +
+    (info.pend.length ? `<div>⏳ Pending: ${names(info.pend)}</div>` : '') +
+    `<div>❌ Away: ${names(info.away)}</div>` +
+    `<div style="margin-top:10px"><b>Will ask ${ppl.length} volunteer${ppl.length === 1 ? '' : 's'}:</b> ` +
+    `${push} by phone notification, ${email} by email` +
+    (none ? `, ${none} can't be reached (no notifications or email on file)` : '') + '.</div>' +
+    (ev.audience === 'activity' && !ev.activities.length ? '<div>Tick Land or Water above.</div>' : '');
+}
+$('evForm').oninput = $('evForm').onchange = renderEvPreview;
+$('evNewBtn').onclick = () => {
+  const open = $('evForm').classList.contains('hidden');
+  $('evForm').classList.toggle('hidden', !open);
+  if (open) {
+    $('evDate').value = S.selected && S.selected >= S.today ? S.selected : S.today;
+    renderEvPreview();
+    setTimeout(() => $('evTitle').focus(), 0);
+  }
+};
+function resetEvForm() {
+  ['evTitle', 'evNote'].forEach(id => $(id).value = '');
+  $('evAllDay').checked = true; $('evLand').checked = $('evWater').checked = false; $('evAud').value = 'notAway';
+  $('evForm').classList.add('hidden');
+}
+$('evCancel').onclick = resetEvForm;
+$('evSend').onclick = async () => {
+  const ev = evDraft();
+  if (!ev.title) return toast('Give the event a name.');
+  if (!ev.date || ev.date < S.today) return toast('Pick a date from today on.');
+  if (!ev.activities.length) return toast('Tick Land, Water, or both.');
+  if (ev.startTime && (!ev.endTime || ev.endTime <= ev.startTime)) return toast('Check the times.');
+  const n = audienceOf(ev).length;
+  if (!confirm(`Post "${ev.title}" on ${niceDate(ev.date)} and ask ${n} volunteer${n === 1 ? '' : 's'}?`)) return;
+  const btn = $('evSend'); btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    const d = await call('createEvent', ev, S.pin, S.code);
+    apply(d); resetEvForm();
+    const s = d.sent || {};
+    toast(`Posted ✓ ${s.push || 0} notified by phone, ${s.email || 0} by email` + (s.none ? `, ${s.none} unreachable` : ''));
+  } catch (err) { toast(errMsg(err)); }
+  btn.disabled = false; btn.textContent = 'Send';
+};
+function renderEvents() {
+  const list = upcomingEvents();
+  const names = a => a.length ? esc(a.join(', ')) : '—';
+  $('evList').innerHTML = list.length ? list.map(ev => {
+    const r = replies(ev);
+    return `<li class="top"><div class="grow">
+      <div><b>${esc(ev.title)}</b></div>
+      <div style="margin-top:2px">${esc(evWhen(ev))}</div>
+      <div class="acts" style="margin-top:2px">${esc(actsText(ev))}</div>
+      ${ev.note ? `<div class="sub">${esc(ev.note)}</div>` : ''}
+      <details class="replies"><summary>✅ ${r.yes.length} coming · ❌ ${r.no.length} can't · ${r.quiet.length} no reply</summary>
+        <div class="sub"><b>Coming:</b> ${names(r.yes)}</div>
+        <div class="sub"><b>Can't make it:</b> ${names(r.no)}</div>
+        <div class="sub"><b>No reply yet:</b> ${names(r.quiet)}</div>
+        <div class="sub" style="margin-top:4px">Posted by ${esc(ev.createdBy)}, sent to ${(ev.invited || []).length}.</div>
+      </details>
+    </div><button class="x" data-evdel="${esc(ev.id)}" aria-label="Cancel event">×</button></li>`;
+  }).join('') : '<li class="empty">No upcoming events.</li>';
+}
+$('evList').onclick = async ev => {
+  const b = ev.target.closest('[data-evdel]'); if (!b) return;
+  if (!confirm('Cancel this event? Volunteers who said yes get a notification. Their availability stays on the calendar.')) return;
+  b.disabled = true;
+  try { apply(await call('deleteEvent', b.dataset.evdel, S.pin, S.code)); toast('Event cancelled'); }
+  catch (err) { toast(errMsg(err)); b.disabled = false; }
+};
+
+/* ---------- PUSH NOTIFICATIONS (Firebase) ----------
+ * Only on the GitHub Pages copy, and only when config.js has window.FIREBASE filled in.
+ * iPhones need the app added to the Home Screen first (iOS 16.4+). */
+const FB_VER = '10.14.1';
+const PUSH = {
+  configured: () => !IN_APPS_SCRIPT && !!(window.FIREBASE && FIREBASE.apiKey && FIREBASE.vapidKey && FIREBASE.projectId),
+  capable: () => 'serviceWorker' in navigator && 'Notification' in window && 'PushManager' in window,
+  ios: /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1),
+  standalone: () => (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true,
+};
+/* 'none' (not set up) | 'ready' | 'install' (iPhone, not on Home Screen yet) | 'unsupported' */
+function pushState() {
+  if (!PUSH.configured()) return 'none';
+  if (PUSH.capable()) return 'ready';
+  if (PUSH.ios && !PUSH.standalone()) return 'install';
+  return 'unsupported';
+}
+function pushOnFor(key, who) {
+  return !!who && pushState() === 'ready' && Notification.permission === 'granted' &&
+    !!store.get('push_token') && store.get(key) === who;
+}
+function pushLineHtml(on, what) {
+  const st = pushState();
+  if (st === 'install') return `🔔 ${what}: <button class="link" data-ios-help>How to turn on (iPhone)</button>`;
+  if (st !== 'ready') return '';
+  return on ? `🔔 ${what}: <b>on</b> · <button class="link" data-push="off">Turn off</button>`
+    : `🔔 ${what}: off · <button class="link" data-push="on">Turn on</button>`;
+}
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = res; s.onerror = () => rej(new Error('Couldn\'t load notifications. Check your connection.'));
+    document.head.appendChild(s);
+  });
+}
+let fbm = null;
+async function fbMessaging() {
+  if (fbm) return fbm;
+  const base = 'https://www.gstatic.com/firebasejs/' + FB_VER + '/';
+  await loadScript(base + 'firebase-app-compat.js');
+  await loadScript(base + 'firebase-messaging-compat.js');
+  const c = window.FIREBASE;
+  if (!firebase.apps.length) {
+    firebase.initializeApp({ apiKey: c.apiKey, authDomain: c.authDomain, projectId: c.projectId,
+      messagingSenderId: c.messagingSenderId, appId: c.appId });
+  }
+  fbm = firebase.messaging();
+  // While the app is open the phone doesn't show the notification, so show it here and refresh.
+  fbm.onMessage(p => {
+    const n = p.notification || {};
+    toast('🔔 ' + [n.title, n.body].filter(Boolean).join(' – '));
+    refresh();
+  });
+  return fbm;
+}
+async function pushToken() {
+  const c = window.FIREBASE;
+  const q = new URLSearchParams({ apiKey: c.apiKey, projectId: c.projectId, messagingSenderId: c.messagingSenderId, appId: c.appId });
+  const reg = await navigator.serviceWorker.register('firebase-messaging-sw.js?' + q);
+  await navigator.serviceWorker.ready;
+  const m = await fbMessaging();
+  const token = await m.getToken({ vapidKey: c.vapidKey, serviceWorkerRegistration: reg });
+  if (!token) throw new Error('Couldn\'t turn on notifications. Try again.');
+  store.set('push_token', token);
+  return token;
+}
+async function enablePush() {
+  if (Notification.permission === 'denied') {
+    throw new Error('Notifications are blocked for this app. Allow them in your phone\'s settings, then try again.');
+  }
+  const perm = await Notification.requestPermission(); // must run straight from the tap (iPhone)
+  if (perm !== 'granted') throw new Error('Notifications weren\'t allowed.');
+  return pushToken();
+}
+const appUrl = () => location.origin + location.pathname;
+async function setVolPush(on) {
+  try {
+    const token = on ? await enablePush() : store.get('push_token');
+    if (token) apply(await call('savePush', S.me, token, on, S.code, appUrl()));
+    store.set('push_me', on ? S.me : '');
+    if (on) S.askNotify = false;
+    render();
+    toast(on ? '🔔 Notifications on: approvals and event call-outs.' : 'Notifications off.');
+  } catch (err) { toast(errMsg(err)); }
+}
+async function setAdminPush(on) {
+  try {
+    const token = on ? await enablePush() : store.get('push_token');
+    if (token) await call('saveAdminPush', S.pin, token, on, appUrl(), S.code);
+    store.set('push_admin', on ? S.admin : '');
+    renderAdmin();
+    toast(on ? '🔔 You\'ll be notified when availability needs approval.' : 'Admin notifications off.');
+  } catch (err) { toast(errMsg(err)); }
+}
+/* On each visit: re-check the token (Firebase sometimes renews it) and listen for messages. */
+async function initPush() {
+  if (pushState() !== 'ready' || Notification.permission !== 'granted' || !store.get('push_token')) return;
+  try {
+    const old = store.get('push_token');
+    const token = await pushToken();
+    if (token === old) return;
+    if (store.get('push_me') && store.get('push_me') === S.me) call('savePush', S.me, token, true, S.code, appUrl()).catch(() => {});
+    if (store.get('push_admin') && S.pin) call('saveAdminPush', S.pin, token, true, appUrl(), S.code).catch(() => {});
+  } catch (e) { console.warn('Push check failed', e); }
+}
+async function refresh() { try { apply(await call('getData', S.code)); } catch (e) { /* next action will retry */ } }
+
+document.addEventListener('click', ev => {
+  if (ev.target.closest('[data-ios-help]')) {
+    $('iosHelp').classList.remove('hidden');
+    $('iosHelp').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+  const p = ev.target.closest('[data-push]');
+  if (p) p.closest('#adminPushLine') ? setAdminPush(p.dataset.push === 'on') : setVolPush(p.dataset.push === 'on');
+});
+$('iosHelpClose').onclick = () => $('iosHelp').classList.add('hidden');
 
 /* ---------- access code ---------- */
 $('codeBtn').onclick = () => { store.set('code', $('codeInput').value.trim()); $('lock').classList.add('hidden'); $('loading').classList.remove('hidden'); load(); };
