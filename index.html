@@ -111,6 +111,10 @@
   .tag.pend { background: var(--wait-soft); color: var(--wait); }
   .pill.pend { background: var(--wait-soft); color: var(--wait); }
   .legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); margin-top: 10px; flex-wrap: wrap; }
+  .legend > span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .tag { display: inline-block; width: 14px; height: 14px; padding: 0; border-radius: 4px; }
+  .legend .tag.avail { background: var(--avail); } .legend .tag.pend { background: #e2b428; }
+  .legend .tag.away { background: var(--away); }
   .filter { margin: 0 0 12px; }
   h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 16px 0 4px; }
   h3:first-of-type { margin-top: 0; }
@@ -258,9 +262,9 @@
       </div>
       <div class="grid" id="grid"></div>
       <div class="legend">
-        <span><span class="tag avail">3 avail</span> available (approved)</span>
-        <span><span class="tag pend">1 pend</span> available, pending approval</span>
-        <span><span class="tag away">2 away</span> away</span>
+        <span><span class="tag avail">&nbsp;</span> Available (approved)</span>
+        <span><span class="tag pend">&nbsp;</span> Pending approval</span>
+        <span><span class="tag away">&nbsp;</span> Away</span>
       </div>
     </div>
     <div class="card">
