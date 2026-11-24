@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg: #f3f7f8; --card: #ffffff; --ink: #14272e; --muted: #5d737b; --line: #dbe5e8;
+    --brand: #0b7a85; --brand-ink: #ffffff; --brand-soft: #e1f2f3;
+    --away: #c2413a; --away-soft: #fbe7e5; --avail: #2e8a4a; --avail-soft: #e2f3e7;
+    --wait: #8a6a12; --wait-soft: #fbf1d6;
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1a1e; --card: #172529; --ink: #e6eef0; --muted: #93a8ae; --line: #27393e;
+      --brand: #35b3bd; --brand-ink: #062a2e; --brand-soft: #173a3e;
+      --away: #f07a72; --away-soft: #3a1f1e; --avail: #6fcf8c; --avail-soft: #1a3324;
+      --wait: #e7c15c; --wait-soft: #3a3118;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  header { position: sticky; top: 0; z-index: 5; background: var(--brand); color: var(--brand-ink);
+    padding: 14px 16px 0; }
+  header h1 { margin: 0 0 10px; font-size: 19px; font-weight: 650; }
+  nav { display: flex; gap: 4px; }
+  nav button { flex: 1; border: 0; background: transparent; color: inherit; opacity: .75;
+    padding: 10px 4px 12px; font: inherit; font-weight: 600; border-bottom: 3px solid transparent; }
+  nav button.on { opacity: 1; border-bottom-color: var(--brand-ink); }
+  nav .count { display: inline-block; min-width: 20px; padding: 0 6px; margin-left: 4px; border-radius: 99px;
+    background: var(--brand-ink); color: var(--brand); font-size: 12px; line-height: 20px; }
+  main { max-width: 640px; margin: 0 auto; padding: 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 16px; margin-bottom: 16px; }
+  h2 { font-size: 16px; margin: 0 0 12px; }
+  label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin: 12px 0 6px; }
+  input, select, textarea { width: 100%; font: inherit; color: var(--ink); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; min-height: 46px; }
+  textarea { min-height: 70px; resize: vertical; }
+  .row { display: flex; gap: 10px; } .row > * { flex: 1; min-width: 0; }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .seg button { flex: 1; border: 0; padding: 12px 6px; font: inherit; font-weight: 600;
+    background: var(--bg); color: var(--muted); }
+  .seg button.away.on { background: var(--away); color: #fff; }
+  .seg button.avail.on { background: var(--avail); color: #fff; }
+  .check { display: flex; align-items: center; gap: 10px; margin-top: 14px; font-weight: 600; }
+  .check input { width: 22px; min-height: 22px; height: 22px; margin: 0; }
+  .boxes { display: flex; gap: 10px; }
+  .boxes label { flex: 1; display: flex; align-items: center; gap: 10px; margin: 0; padding: 12px;
+    border: 1px solid var(--line); border-radius: 12px; background: var(--bg); color: var(--ink); font-size: 15px; }
+  .boxes label.on { border-color: var(--avail); background: var(--avail-soft); }
+  .boxes input { width: 22px; min-height: 22px; height: 22px; margin: 0; }
+  .chips { display: flex; gap: 6px; margin-top: 10px; }
+  .chips button { flex: 1; min-width: 0; height: 42px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--muted); font: inherit; font-weight: 700; font-size: 14px; }
+  .chips button.on { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
+  .hint { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+  .btn { display: block; width: 100%; margin-top: 18px; border: 0; border-radius: 12px; padding: 14px;
+    font: inherit; font-weight: 700; background: var(--brand); color: var(--brand-ink); }
+  .btn:disabled { opacity: .5; }
+  .btn.ghost { background: transparent; color: var(--brand); border: 1px solid var(--line); margin-top: 10px; }
+  .btn.small { display: inline-block; width: auto; margin: 0; padding: 8px 14px; font-size: 14px; }
+  .link { border: 0; background: none; color: var(--brand); font: inherit; font-weight: 600; padding: 4px 0; }
+  .list { list-style: none; margin: 0; padding: 0; }
+  .list li { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
+  .list li:first-child { border-top: 0; }
+  .list li.top { align-items: flex-start; }
+  .pill { font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 99px; white-space: nowrap; }
+  .pill.away { background: var(--away-soft); color: var(--away); }
+  .pill.avail { background: var(--avail-soft); color: var(--avail); }
+  .grow { flex: 1; min-width: 0; } .sub { font-size: 13px; color: var(--muted); }
+  .appr { font-size: 13px; font-weight: 600; margin-top: 4px; }
+  .appr.ok { color: var(--avail); } .appr.wait { color: var(--wait); }
+  .reach { font-size: 13px; margin-top: 6px; padding: 8px 10px; border-radius: 8px; background: var(--avail-soft); color: var(--ink); }
+  .acts { font-size: 13px; color: var(--ink); }
+  .x { border: 0; background: transparent; color: var(--muted); font-size: 22px; padding: 4px 8px; }
+  .edit { border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 8px;
+    padding: 6px 10px; font: inherit; font-size: 13px; font-weight: 600; }
+  .actions { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+  .empty { color: var(--muted); font-size: 14px; padding: 6px 0; }
+  .banner { background: var(--brand-soft); border-radius: 10px; padding: 10px 12px; font-size: 14px; font-weight: 600;
+    display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 4px; }
+
+  /* name search */
+  .picked { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px;
+    border: 1px solid var(--brand); border-radius: 10px; background: var(--brand-soft); font-weight: 700; }
+  .picker { list-style: none; margin: 6px 0 0; padding: 0; max-height: 260px; overflow-y: auto;
+    border: 1px solid var(--line); border-radius: 10px; }
+  .picker li { padding: 12px; border-top: 1px solid var(--line); cursor: pointer; }
+  .picker li:first-child { border-top: 0; }
+  .picker li:active, .picker li:hover { background: var(--brand-soft); }
+  .picker li.new { color: var(--brand); font-weight: 600; }
+  .picker mark { background: none; color: var(--brand); font-weight: 800; }
+
+  .monthbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .monthbar button { border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+    border-radius: 10px; width: 44px; height: 40px; font-size: 18px; }
+  .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+  .dow { text-align: center; font-size: 11px; font-weight: 700; color: var(--muted); padding: 4px 0; }
+  .day { min-height: 58px; border-radius: 8px; padding: 4px; background: var(--bg); border: 2px solid transparent;
+    display: flex; flex-direction: column; gap: 2px; font: inherit; color: inherit; text-align: left; }
+  .day.out { opacity: .35; } .day.today .n { color: var(--brand); font-weight: 800; }
+  .day.sel { border-color: var(--brand); }
+  .day .n { font-size: 13px; font-weight: 600; }
+  .tag { font-size: 10px; font-weight: 700; border-radius: 5px; padding: 0 3px; line-height: 15px; }
+  .tag.away { background: var(--away-soft); color: var(--away); }
+  .tag.avail { background: var(--avail-soft); color: var(--avail); }
+  .tag.pend { background: var(--wait-soft); color: var(--wait); }
+  .pill.pend { background: var(--wait-soft); color: var(--wait); }
+  .legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); margin-top: 10px; flex-wrap: wrap; }
+  .filter { margin: 0 0 12px; }
+  h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 16px 0 4px; }
+  h3:first-of-type { margin-top: 0; }
+
+  #toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(140px);
+    background: var(--ink); color: var(--bg); padding: 12px 18px; border-radius: 12px; font-weight: 600;
+    transition: transform .25s; max-width: calc(100% - 32px); z-index: 10; text-align: center; }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+  #loading { text-align: center; padding: 60px 16px; color: var(--muted); }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">Volunteer Availability</h1>
+  <nav>
+    <button data-tab="add" class="on">My dates</button>
+    <button data-tab="sched">Schedule</button>
+    <button data-tab="admin" id="adminTabBtn" class="hidden">Approve<span class="count" id="pendCount"></span></button>
+  </nav>
+</header>
+
+<main>
+  <div id="loading">Loading…</div>
+
+  <!-- Access code -->
+  <section id="lock" class="card hidden">
+    <h2>Enter access code</h2>
+    <p class="hint">Ask the volunteer coordinator for the code. You only need to enter it once on this device.</p>
+    <input id="codeInput" autocomplete="off" autocapitalize="none" placeholder="Access code">
+    <button class="btn" id="codeBtn">Continue</button>
+  </section>
+
+  <!-- MY DATES TAB -->
+  <section id="tab-add" class="hidden">
+    <div class="card">
+      <label style="margin-top:0">Your name</label>
+      <div id="whoPicked" class="picked hidden">
+        <span id="whoName"></span>
+        <button class="link" id="whoChange">Change</button>
+      </div>
+      <div id="whoSearchBox">
+        <input id="whoSearch" type="search" placeholder="🔍 Start typing your name…" autocomplete="off" autocapitalize="words">
+        <ul class="picker" id="whoList"></ul>
+      </div>
+
+      <div id="notifyLine" class="hint hidden"></div>
+
+      <div id="notifyBox" class="hidden" style="margin-top:12px">
+        <div class="banner" style="display:block">
+          <div>📧 Want an email when an admin approves your available time?</div>
+          <input id="notifyEmail" type="email" inputmode="email" autocomplete="email" autocapitalize="none"
+            placeholder="you@example.com" style="margin-top:10px">
+          <p class="hint" id="notifyOnFile"></p>
+          <div class="row" style="margin-top:10px">
+            <button class="btn small" id="notifyYes">Yes, email me</button>
+            <button class="btn small ghost" id="notifyNo" style="margin:0">No thanks</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="newWho" class="hidden">
+        <label for="newName">Your full name</label>
+        <div class="row">
+          <input id="newName" placeholder="First and last name">
+          <button class="btn small" id="newNameBtn" style="flex:0 0 auto">Add me</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card hidden" id="formCard">
+      <div class="banner hidden" id="editBanner">
+        <span>✏️ Editing an entry</span>
+        <button class="link" id="cancelEdit">Cancel</button>
+      </div>
+
+      <label style="margin-top:0">I'm…</label>
+      <div class="seg">
+        <button class="avail" data-status="Available">✅ Available</button>
+        <button class="away" data-status="Unavailable">❌ Away</button>
+      </div>
+      <p class="hint" id="statusHint"></p>
+
+      <div id="actBox">
+        <label>Available for</label>
+        <div class="boxes">
+          <label id="lblLand"><input type="checkbox" id="actLand" value="Land"> 🌴 Land</label>
+          <label id="lblWater"><input type="checkbox" id="actWater" value="Water"> 🌊 Water</label>
+        </div>
+        <p class="hint">Tick one or both.</p>
+      </div>
+
+      <div class="row">
+        <div><label for="start">From</label><input type="date" id="start"></div>
+        <div><label for="end" id="endLabel">To</label><input type="date" id="end"></div>
+      </div>
+
+      <label class="check"><input type="checkbox" id="repeat"> Repeats every week</label>
+      <div id="repeatBox" class="hidden">
+        <div class="chips" id="dayChips"></div>
+        <p class="hint" id="repeatHint"></p>
+      </div>
+
+      <label class="check"><input type="checkbox" id="allDay" checked> All day</label>
+      <div id="times" class="row hidden">
+        <div><label for="t1">Start time</label><input type="time" id="t1" value="09:00"></div>
+        <div><label for="t2">End time</label><input type="time" id="t2" value="13:00"></div>
+      </div>
+      <p class="hint hidden" id="timesHint">These hours apply to every day in the range.</p>
+
+      <label for="notes">Notes (optional)</label>
+      <textarea id="notes" maxlength="500" placeholder="e.g. certified diver, can drive the boat, back by noon"></textarea>
+
+      <button class="btn" id="saveBtn">Save</button>
+      <p class="hint" id="saveHint">An admin will review your entry.</p>
+    </div>
+
+    <div class="card hidden" id="mineCard">
+      <h2>Your upcoming dates</h2>
+      <ul class="list" id="mine"></ul>
+    </div>
+
+    <div style="text-align:center;padding:4px 0 24px">
+      <button class="link" id="adminLink">Admin sign-in</button>
+    </div>
+    <div class="card hidden" id="adminLogin">
+      <h2>Admin sign-in</h2>
+      <input id="pinInput" type="password" inputmode="numeric" autocomplete="off" placeholder="Admin PIN">
+      <button class="btn" id="pinBtn">Sign in</button>
+    </div>
+  </section>
+
+  <!-- SCHEDULE TAB -->
+  <section id="tab-sched" class="hidden">
+    <div class="card">
+      <div class="chips filter" id="filter">
+        <button data-f="All" class="on">All</button>
+        <button data-f="Land">🌴 Land</button>
+        <button data-f="Water">🌊 Water</button>
+      </div>
+      <div class="monthbar">
+        <button id="prevM" aria-label="Previous month">‹</button>
+        <h2 id="monthLabel" style="margin:0"></h2>
+        <button id="nextM" aria-label="Next month">›</button>
+      </div>
+      <div class="grid" id="grid"></div>
+      <div class="legend">
+        <span><span class="tag avail">3 avail</span> available (approved)</span>
+        <span><span class="tag pend">1 pend</span> available, pending approval</span>
+        <span><span class="tag away">2 away</span> away</span>
+      </div>
+    </div>
+    <div class="card">
+      <h2 id="dayLabel"></h2>
+      <div id="dayDetail"></div>
+    </div>
+  </section>
+
+  <!-- ADMIN TAB -->
+  <section id="tab-admin" class="hidden">
+    <div class="card">
+      <div class="banner"><span id="adminWho"></span><button class="link" id="adminOut">Sign out</button></div>
+      <h3 style="margin-top:14px">Waiting for approval</h3>
+      <ul class="list" id="pendList"></ul>
+    </div>
+    <div class="card">
+      <h3>Approved (upcoming)</h3>
+      <ul class="list" id="apprList"></ul>
+    </div>
+  </section>
+</main>
+<div id="toast"></div>
+
+<script>
+const S = { vols: [], entries: [], today: '', org: 'RRUSA', me: '', status: 'Available', month: null, selected: '',
+  code: '', tab: 'add', days: [], editing: '', admin: '', pin: '', filter: 'All', search: '' };
+const NEW = '__new__';
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const ACT_ICON = { Land: '🌴', Water: '🌊' };
+const $ = id => document.getElementById(id);
+
+/* ---------- storage that never throws ---------- */
+const store = {
+  get(k) { try { return localStorage.getItem('va_' + k) || ''; } catch (e) { return ''; } },
+  set(k, v) { try { if (v) localStorage.setItem('va_' + k, v); else localStorage.removeItem('va_' + k); } catch (e) {} },
+};
+
+/* ---------- server calls ----------
+ * Inside Apps Script the page talks to the server with google.script.run.
+ * Hosted elsewhere (GitHub Pages) it POSTs to the web app's /exec URL, which is set in
+ * config.js as window.API_URL. No Google sign-in is involved that way. */
+const IN_APPS_SCRIPT = typeof google !== 'undefined' && !!(google.script && google.script.run);
+function loadConfig() {
+  if (IN_APPS_SCRIPT || window.API_URL) return Promise.resolve();
+  return new Promise(res => {
+    const s = document.createElement('script');
+    s.src = 'config.js?v=' + Date.now(); s.onload = s.onerror = () => res();
+    document.head.appendChild(s);
+  });
+}
+function call(fn, ...args) {
+  if (IN_APPS_SCRIPT) {
+    return new Promise((res, rej) =>
+      google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...args));
+  }
+  const url = window.API_URL || '';
+  if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(url)) {
+    return Promise.reject(new Error('The app isn\'t connected yet: put the web app\'s /exec link in config.js.'));
+  }
+  return fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // plain text avoids a CORS preflight
+    body: JSON.stringify({ fn, args }),
+  })
+    .then(r => { if (!r.ok) throw new Error('Server error (' + r.status + '). Try again.'); return r.json(); })
+    .then(out => { if (!out.ok) throw new Error(out.error); return out.data; });
+}
+
+/* ---------- helpers ---------- */
+const pad = n => String(n).padStart(2, '0');
+const ymd = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+const parse = s => { const p = s.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); };
+const covers = (e, d) => e.start <= d && d <= e.end && (!e.days || !e.days.length || e.days.includes(parse(d).getDay()));
+const addDays = (s, n) => { const d = parse(s); d.setDate(d.getDate() + n); return ymd(d); };
+function daysText(days) {
+  if (days.length === 7) return 'Every day';
+  if (days.join() === '1,2,3,4,5') return 'Every weekday';
+  if (days.join() === '0,6') return 'Every weekend';
+  const names = days.map(n => DAYS[n]);
+  return 'Every ' + (names.length > 1 ? names.slice(0, -1).join(', ') + ' & ' + names[names.length - 1] : names[0]);
+}
+function niceDate(s, opts) {
+  return parse(s).toLocaleDateString(undefined, opts || { weekday: 'short', month: 'short', day: 'numeric' });
+}
+function niceTime(t) {
+  const [h, m] = t.split(':').map(Number);
+  return new Date(2000, 0, 1, h, m).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+function rangeText(e) {
+  const md = { month: 'short', day: 'numeric' };
+  let s = e.days && e.days.length
+    ? daysText(e.days) + ', ' + niceDate(e.start, md) + ' – ' + niceDate(e.end, md)
+    : e.start === e.end ? niceDate(e.start) : niceDate(e.start) + ' – ' + niceDate(e.end);
+  if (e.startTime) s += ', ' + niceTime(e.startTime) + '–' + niceTime(e.endTime);
+  return s;
+}
+const actsText = e => (e.activities || []).map(a => ACT_ICON[a] + ' ' + a).join('  ');
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const statusPill = e => e.status === 'Unavailable'
+  ? '<span class="pill away">Away</span>' : '<span class="pill avail">Available</span>';
+
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 3200);
+}
+function errMsg(err) { return (err && err.message ? err.message : String(err)).replace(/^Exception:\s*/, ''); }
+
+/* ---------- load ---------- */
+async function load() {
+  S.code = store.get('code');
+  try {
+    await loadConfig();
+    const d = await call('getData', S.code);
+    if (d.locked) { $('loading').classList.add('hidden'); show('lock'); return; }
+    S.selected = d.today;
+    S.month = d.today.slice(0, 7);
+    S.me = store.get('me');
+    if (!d.volunteers.some(v => v.name === S.me)) S.me = '';
+    $('start').value = $('end').value = d.today;
+    apply(d);
+    $('loading').classList.add('hidden');
+    switchTab('add');
+    const pin = store.get('pin');
+    if (pin) adminSignIn(pin, true);
+  } catch (err) {
+    $('loading').classList.remove('hidden');
+    $('loading').textContent = 'Could not load: ' + errMsg(err);
+  }
+}
+function apply(d) {
+  S.vols = d.volunteers; S.entries = d.entries; S.today = d.today;
+  if (d.org) S.org = d.org;
+  if (d.title) { $('title').textContent = d.title; document.title = d.title; }
+  if (S.editing && !S.entries.some(e => e.id === S.editing)) stopEditing();
+  render();
+}
+function show(id) {
+  ['lock', 'tab-add', 'tab-sched', 'tab-admin'].forEach(x => $(x).classList.toggle('hidden', x !== id));
+}
+
+/* ---------- tabs ---------- */
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => switchTab(b.dataset.tab));
+function switchTab(t) {
+  if (!S.today) return;
+  if (t === 'admin' && !S.admin) t = 'add';
+  S.tab = t;
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  show('tab-' + t);
+  render();
+}
+
+function render() {
+  if (!S.today || !S.month) return;
+  renderWho(); renderForm(); renderMine(); renderMonth(); renderDay(); renderAdmin();
+}
+
+/* ---------- NAME SEARCH ---------- */
+function vol(name) { return S.vols.find(v => v.name === name); }
+
+function renderWho() {
+  const picked = !!vol(S.me);
+  $('whoPicked').classList.toggle('hidden', !picked);
+  $('whoSearchBox').classList.toggle('hidden', picked || S.me === NEW);
+  $('newWho').classList.toggle('hidden', S.me !== NEW);
+  renderNotify();
+  if (picked) { $('whoName').textContent = S.me; return; }
+  if (S.me === NEW) return;
+
+  const q = S.search.trim().toLowerCase();
+  const words = q.split(/\s+/).filter(Boolean);
+  const matches = S.vols.filter(v => words.every(w => v.name.toLowerCase().includes(w)));
+  const hl = name => {
+    if (!words.length) return esc(name);
+    const re = new RegExp('(' + words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')', 'gi');
+    return name.split(re).map((part, i) => i % 2 ? `<mark>${esc(part)}</mark>` : esc(part)).join('');
+  };
+  $('whoList').innerHTML =
+    matches.map(v => `<li data-name="${esc(v.name)}">${hl(v.name)}</li>`).join('') +
+    (q && !matches.length ? '<li class="empty" style="cursor:default">No match.</li>' : '') +
+    `<li class="new" data-name="${NEW}">➕ I'm not on the list</li>`;
+}
+/* ---------- EMAIL NOTIFICATIONS ---------- */
+function renderNotify() {
+  const v = vol(S.me);
+  $('notifyLine').classList.toggle('hidden', !v);
+  if (!v) { S.askNotify = false; $('notifyBox').classList.add('hidden'); return; }
+  $('notifyLine').innerHTML = v.notify === 'Yes'
+    ? `📧 Approval emails: <b>on</b> (${esc(v.email)}) · <button class="link" data-notify-open>Change</button>`
+    : `📧 Approval emails: off · <button class="link" data-notify-open>Turn on</button>`;
+  $('notifyBox').classList.toggle('hidden', !S.askNotify);
+  $('notifyOnFile').textContent = v.email ? 'On file: ' + v.email + '. Leave blank to keep it.' : '';
+  $('notifyNo').textContent = v.notify === 'Yes' ? 'Turn off' : 'No thanks';
+}
+function openNotify() {
+  S.askNotify = true; $('notifyEmail').value = ''; renderNotify();
+  $('notifyBox').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+$('notifyLine').onclick = ev => { if (ev.target.closest('[data-notify-open]')) openNotify(); };
+async function saveNotify(on) {
+  const email = $('notifyEmail').value.trim();
+  if (on && !email && !vol(S.me).email) return toast('Enter your email address.');
+  ['notifyYes', 'notifyNo'].forEach(id => $(id).disabled = true);
+  try {
+    const d = await call('setContact', S.me, on ? email : '', on, S.code);
+    S.askNotify = false;
+    apply(d);
+    toast(on ? 'We\'ll email you when your time is approved.' : 'OK, no emails.');
+  } catch (err) { toast(errMsg(err)); }
+  ['notifyYes', 'notifyNo'].forEach(id => $(id).disabled = false);
+}
+$('notifyYes').onclick = () => saveNotify(true);
+$('notifyNo').onclick = () => saveNotify(false);
+
+$('whoSearch').oninput =e => { S.search = e.target.value; renderWho(); };
+$('whoList').onclick = ev => {
+  const li = ev.target.closest('li[data-name]'); if (!li) return;
+  S.me = li.dataset.name;
+  if (S.me === NEW) { $('newName').value = S.search.trim(); setTimeout(() => $('newName').focus(), 0); }
+  else store.set('me', S.me);
+  stopEditing();
+  render();
+};
+$('whoChange').onclick = () => {
+  S.me = ''; S.search = ''; $('whoSearch').value = ''; store.set('me', '');
+  stopEditing(); render();
+  setTimeout(() => $('whoSearch').focus(), 0);
+};
+
+$('newNameBtn').onclick = async () => {
+  const name = $('newName').value.trim();
+  if (!name) return toast('Type your name first.');
+  $('newNameBtn').disabled = true;
+  try {
+    const d = await call('addVolunteer', name, S.code);
+    const match = d.volunteers.find(v => v.name.toLowerCase() === name.replace(/\s+/g, ' ').toLowerCase());
+    S.me = match ? match.name : '';
+    if (match) store.set('me', S.me);
+    $('newName').value = '';
+    apply(d);
+    toast('Welcome, ' + name + '!');
+  } catch (err) { toast(errMsg(err)); }
+  $('newNameBtn').disabled = false;
+};
+
+/* ---------- FORM ---------- */
+function renderForm() {
+  const has = !!vol(S.me);
+  $('formCard').classList.toggle('hidden', !has);
+  if (!has) return;
+  document.querySelectorAll('.seg button').forEach(b => b.classList.toggle('on', b.dataset.status === S.status));
+  const avail = S.status === 'Available';
+  $('statusHint').textContent = avail
+    ? 'Shows in green on the calendar: dates you can help out.'
+    : 'Shows in red on the calendar: dates you can\'t make it.';
+  $('actBox').classList.toggle('hidden', !avail);
+  $('lblLand').classList.toggle('on', $('actLand').checked);
+  $('lblWater').classList.toggle('on', $('actWater').checked);
+
+  const allDay = $('allDay').checked, rep = $('repeat').checked;
+  $('times').classList.toggle('hidden', allDay);
+  $('timesHint').classList.toggle('hidden', allDay || rep || $('start').value === $('end').value);
+
+  $('repeatBox').classList.toggle('hidden', !rep);
+  $('endLabel').textContent = rep ? 'Until' : 'To';
+  if (rep) {
+    $('dayChips').innerHTML = DAYS.map((d, i) =>
+      `<button type="button" data-day="${i}" class="${S.days.includes(i) ? 'on' : ''}" aria-pressed="${S.days.includes(i)}">${d.slice(0, 2)}</button>`).join('');
+    const s = $('start').value, e = $('end').value;
+    $('repeatHint').textContent = !S.days.length ? 'Tap the days of the week.'
+      : s && e ? daysText(S.days) + ' from ' + niceDate(s, { month: 'short', day: 'numeric' }) +
+        ' until ' + niceDate(e, { month: 'short', day: 'numeric', year: 'numeric' }) + '.' : '';
+  }
+
+  $('editBanner').classList.toggle('hidden', !S.editing);
+  $('saveBtn').textContent = S.editing ? 'Update entry' : 'Save';
+  $('saveHint').textContent = !avail ? ''
+    : S.editing ? 'Changing available time sends it back to an admin for approval.'
+    : 'An admin will review your available time.';
+  $('saveHint').classList.toggle('hidden', !avail);
+}
+document.querySelectorAll('.seg button').forEach(b => b.onclick = () => { S.status = b.dataset.status; renderForm(); });
+$('actLand').onchange = $('actWater').onchange = renderForm;
+$('allDay').onchange = renderForm;
+$('start').onchange = () => {
+  const s = $('start').value;
+  if (!$('end').value || $('end').value < s) $('end').value = $('repeat').checked ? addDays(s, 7 * 12) : s;
+  renderForm();
+};
+$('end').onchange = renderForm;
+$('repeat').onchange = () => {
+  if ($('repeat').checked) {
+    const s = $('start').value || S.today;
+    if (!S.days.length) S.days = [parse(s).getDay()];
+    if (!$('end').value || $('end').value <= s) $('end').value = addDays(s, 7 * 12); // default: 12 weeks
+  }
+  renderForm();
+};
+$('dayChips').onclick = ev => {
+  const b = ev.target.closest('button'); if (!b) return;
+  const n = Number(b.dataset.day);
+  S.days = S.days.includes(n) ? S.days.filter(x => x !== n) : [...S.days, n].sort((a, b) => a - b);
+  renderForm();
+};
+
+function resetForm() {
+  $('notes').value = '';
+  $('repeat').checked = false; S.days = [];
+  $('allDay').checked = true;
+  $('actLand').checked = $('actWater').checked = false;
+  $('start').value = $('end').value = S.today;
+}
+function startEditing(id) {
+  const e = S.entries.find(x => x.id === id); if (!e) return;
+  S.editing = id;
+  S.status = e.status;
+  $('actLand').checked = e.activities.includes('Land');
+  $('actWater').checked = e.activities.includes('Water');
+  $('start').value = e.start; $('end').value = e.end;
+  $('repeat').checked = !!(e.days && e.days.length); S.days = (e.days || []).slice();
+  $('allDay').checked = !e.startTime;
+  if (e.startTime) { $('t1').value = e.startTime; $('t2').value = e.endTime; }
+  $('notes').value = e.notes;
+  renderForm();
+  $('formCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function stopEditing() { if (S.editing) { S.editing = ''; resetForm(); } }
+$('cancelEdit').onclick = () => { stopEditing(); renderForm(); };
+
+$('saveBtn').onclick = async () => {
+  const allDay = $('allDay').checked, avail = S.status === 'Available';
+  const e = {
+    volunteer: S.me, status: S.status, start: $('start').value, end: $('end').value || $('start').value,
+    startTime: allDay ? '' : $('t1').value, endTime: allDay ? '' : $('t2').value, notes: $('notes').value,
+    days: $('repeat').checked ? S.days.slice() : [],
+    activities: avail ? ['Land', 'Water'].filter(a => $('act' + a).checked) : [],
+  };
+  if (avail && !e.activities.length) return toast('Tick Land, Water, or both.');
+  if (!e.start) return toast('Pick a start date.');
+  if (e.end < e.start) return toast('The end date is before the start date.');
+  if (!allDay && (!e.startTime || !e.endTime || e.endTime <= e.startTime)) return toast('Check the times.');
+  if ($('repeat').checked) {
+    if (!e.days.length) return toast('Pick at least one day of the week.');
+    let hit = false;
+    for (let d = e.start, i = 0; i < 7 && d <= e.end; d = addDays(d, 1), i++) if (e.days.includes(parse(d).getDay())) hit = true;
+    if (!hit) return toast('None of those weekdays fall between the dates.');
+  }
+  const btn = $('saveBtn'), label = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    const wasEditing = S.editing;
+    const d = wasEditing ? await call('updateEntry', wasEditing, e, S.code) : await call('addEntry', e, S.code);
+    S.editing = ''; resetForm();
+    // First time someone submits available time, ask if they want approval emails.
+    const meNow = d.volunteers.find(v => v.name === S.me);
+    if (e.status === 'Available' && meNow && !meNow.notify) { S.askNotify = true; $('notifyEmail').value = ''; }
+    apply(d);
+    if (S.askNotify) $('notifyBox').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    toast(e.status !== 'Available' ? (wasEditing ? 'Updated ✓' : 'Saved ✓')
+      : wasEditing ? 'Updated ✓ Waiting for approval.' : 'Saved ✓ An admin will review it.');
+  } catch (err) { toast(errMsg(err)); }
+  btn.disabled = false; btn.textContent = label;
+  renderForm();
+};
+
+/* ---------- MY ENTRIES ---------- */
+function approvalHtml(e) {
+  if (e.status !== 'Available') return ''; // away time needs no approval
+  return e.approval === 'Approved'
+    ? `<div class="appr ok">✓ Approved by ${esc(e.approvedBy)}</div><div class="reach">${esc(S.org)} will reach out.</div>`
+    : '<div class="appr wait">⏳ Waiting for approval</div>';
+}
+function renderMine() {
+  const has = !!vol(S.me);
+  $('mineCard').classList.toggle('hidden', !has);
+  if (!has) return;
+  const mine = S.entries.filter(e => e.volunteer === S.me && e.end >= S.today)
+    .sort((a, b) => a.start.localeCompare(b.start));
+  $('mine').innerHTML = mine.length ? mine.map(e => `
+    <li class="top">
+      <div class="grow">
+        <div>${statusPill(e)} ${e.activities.length ? `<span class="acts">${esc(actsText(e))}</span>` : ''}</div>
+        <div style="margin-top:4px">${esc(rangeText(e))}</div>
+        ${e.notes ? `<div class="sub">${esc(e.notes)}</div>` : ''}
+        ${approvalHtml(e)}
+      </div>
+      <div class="actions">
+        <button class="edit" data-edit="${esc(e.id)}">${S.editing === e.id ? 'Editing…' : 'Edit'}</button>
+        <button class="x" data-del="${esc(e.id)}" aria-label="Delete">×</button>
+      </div>
+    </li>`).join('') : '<li class="empty">Nothing yet.</li>';
+}
+$('mine').onclick = async ev => {
+  const b = ev.target.closest('button'); if (!b) return;
+  if (b.dataset.edit) return startEditing(b.dataset.edit);
+  const id = b.dataset.del;
+  if (!id || !confirm('Delete this entry?')) return;
+  try { apply(await call('deleteEntry', id, S.code)); toast('Deleted'); } catch (err) { toast(errMsg(err)); }
+};
+
+/* ---------- SCHEDULE TAB ---------- */
+const passesFilter = e => S.filter === 'All' || e.status !== 'Available' || e.activities.includes(S.filter);
+function dayInfo(d) {
+  // One row per volunteer per status; a person can appear in both lists
+  // (e.g. available in the morning, away in the afternoon).
+  const avail = [], pend = [], away = [];
+  S.vols.forEach(v => {
+    const es = S.entries.filter(e => e.volunteer === v.name && covers(e, d) && passesFilter(e))
+      .sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
+    const a = es.filter(e => e.status === 'Available' && e.approval === 'Approved');
+    const p = es.filter(e => e.status === 'Available' && e.approval !== 'Approved');
+    const u = es.filter(e => e.status === 'Unavailable');
+    if (a.length) avail.push({ v, es: a });
+    if (p.length) pend.push({ v, es: p });
+    if (u.length) away.push({ v, es: u });
+  });
+  return { avail, pend, away };
+}
+
+function renderMonth() {
+  const [y, m] = S.month.split('-').map(Number);
+  const first = new Date(y, m - 1, 1);
+  $('monthLabel').textContent = first.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  const startDow = first.getDay();
+  let html = ['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => `<div class="dow">${d}</div>`).join('');
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(y, m - 1, 1 - startDow + i), s = ymd(d);
+    if (i >= 35 && d.getMonth() !== m - 1) break;
+    const info = dayInfo(s);
+    const away = info.away.length, avail = info.avail.length, pend = info.pend.length;
+    html += `<button class="day${d.getMonth() !== m - 1 ? ' out' : ''}${s === S.today ? ' today' : ''}${s === S.selected ? ' sel' : ''}" data-d="${s}">
+      <span class="n">${d.getDate()}</span>
+      ${avail ? `<span class="tag avail">${avail} avail</span>` : ''}
+      ${pend ? `<span class="tag pend">${pend} pend</span>` : ''}
+      ${away ? `<span class="tag away">${away} away</span>` : ''}
+    </button>`;
+  }
+  $('grid').innerHTML = html;
+  document.querySelectorAll('#filter button').forEach(b => b.classList.toggle('on', b.dataset.f === S.filter));
+}
+$('filter').onclick = ev => {
+  const b = ev.target.closest('button'); if (!b) return;
+  S.filter = b.dataset.f; renderMonth(); renderDay();
+};
+$('grid').onclick = ev => {
+  const b = ev.target.closest('.day'); if (!b) return;
+  S.selected = b.dataset.d;
+  if (S.selected.slice(0, 7) !== S.month) S.month = S.selected.slice(0, 7);
+  renderMonth(); renderDay();
+  $('dayLabel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+function shiftMonth(n) {
+  const [y, m] = S.month.split('-').map(Number);
+  S.month = ymd(new Date(y, m - 1 + n, 1)).slice(0, 7);
+  renderMonth();
+}
+$('prevM').onclick = () => shiftMonth(-1);
+$('nextM').onclick = () => shiftMonth(1);
+
+function renderDay() {
+  const d = S.selected; if (!d) return;
+  $('dayLabel').textContent = niceDate(d, { weekday: 'long', month: 'long', day: 'numeric' });
+  const { avail, pend, away } = dayInfo(d);
+  const timeOf = e => e.startTime ? niceTime(e.startTime) + '–' + niceTime(e.endTime) : 'All day';
+  const item = (x, cls) => {
+    const pill = x.es.map(timeOf).join(', ');
+    const acts = [...new Set(x.es.flatMap(e => e.activities))].map(a => ACT_ICON[a] + ' ' + a).join('  ');
+    const notes = x.es.map(e => e.notes).filter(Boolean).join(' · ');
+    const appr = cls === 'avail'
+      ? `<div class="appr ok">✓ Approved by ${esc([...new Set(x.es.map(e => e.approvedBy))].join(', '))}</div>` : '';
+    return `<li class="top"><div class="grow"><div>${esc(x.v.name)}</div>${acts ? `<div class="acts">${esc(acts)}</div>` : ''}${notes ? `<div class="sub">${esc(notes)}</div>` : ''}${appr}</div><span class="pill ${cls}">${esc(pill)}</span></li>`;
+  };
+  const list = (rows, empty) => `<ul class="list">${rows.length ? rows.join('') : `<li class="empty">${empty}</li>`}</ul>`;
+  const what = S.filter === 'All' ? '' : ' for ' + S.filter.toLowerCase();
+  $('dayDetail').innerHTML =
+    `<h3>✅ Available${what} (${avail.length})</h3>` + list(avail.map(x => item(x, 'avail')), 'No approved availability' + what + '.') +
+    (pend.length ? `<h3>⏳ Pending approval (${pend.length})</h3>` + list(pend.map(x => item(x, 'pend')), '') : '') +
+    `<h3>❌ Away (${away.length})</h3>` + list(away.map(x => item(x, 'away')), 'Nobody has said they\'re away.');
+}
+
+/* ---------- ADMIN ---------- */
+$('adminLink').onclick = () => {
+  $('adminLogin').classList.toggle('hidden');
+  if (!$('adminLogin').classList.contains('hidden')) setTimeout(() => $('pinInput').focus(), 0);
+};
+$('pinBtn').onclick = () => adminSignIn($('pinInput').value.trim(), false);
+$('pinInput').onkeydown = e => { if (e.key === 'Enter') $('pinBtn').click(); };
+async function adminSignIn(pin, quiet) {
+  if (!pin) return toast('Enter your PIN.');
+  $('pinBtn').disabled = true;
+  try {
+    const r = await call('adminLogin', pin, S.code);
+    S.admin = r.name; S.pin = pin; store.set('pin', pin);
+    $('pinInput').value = ''; $('adminLogin').classList.add('hidden');
+    renderAdmin();
+    if (!quiet) { toast('Signed in as ' + r.name); switchTab('admin'); }
+  } catch (err) {
+    store.set('pin', '');
+    if (!quiet) toast(errMsg(err));
+  }
+  $('pinBtn').disabled = false;
+}
+$('adminOut').onclick = () => {
+  S.admin = ''; S.pin = ''; store.set('pin', '');
+  renderAdmin(); switchTab('add'); toast('Signed out');
+};
+
+function renderAdmin() {
+  const on = !!S.admin;
+  $('adminTabBtn').classList.toggle('hidden', !on);
+  $('adminLink').classList.toggle('hidden', on);
+  if (!on) return;
+  $('adminWho').textContent = 'Signed in as ' + S.admin;
+  const upcoming = S.entries.filter(e => e.status === 'Available' && e.end >= S.today)
+    .sort((a, b) => a.start.localeCompare(b.start));
+  const pend = upcoming.filter(e => e.approval !== 'Approved');
+  const appr = upcoming.filter(e => e.approval === 'Approved');
+  $('pendCount').textContent = pend.length || '';
+  $('pendCount').classList.toggle('hidden', !pend.length);
+  const row = (e, btn) => `
+    <li class="top">
+      <div class="grow">
+        <div><b>${esc(e.volunteer)}</b></div>
+        <div style="margin-top:2px">${statusPill(e)} ${e.activities.length ? `<span class="acts">${esc(actsText(e))}</span>` : ''}</div>
+        <div style="margin-top:4px">${esc(rangeText(e))}</div>
+        ${e.notes ? `<div class="sub">${esc(e.notes)}</div>` : ''}
+        ${e.approval === 'Approved' ? `<div class="appr ok">✓ Approved by ${esc(e.approvedBy)}</div>` : ''}
+      </div>
+      ${btn}
+    </li>`;
+  $('pendList').innerHTML = pend.length
+    ? pend.map(e => row(e, `<button class="btn small" data-approve="${esc(e.id)}">Approve</button>`)).join('')
+    : '<li class="empty">All caught up 🎉</li>';
+  $('apprList').innerHTML = appr.length
+    ? appr.map(e => row(e, `<button class="edit" data-unapprove="${esc(e.id)}">Undo</button>`)).join('')
+    : '<li class="empty">None yet.</li>';
+}
+async function approve(id, yes, btn) {
+  btn.disabled = true;
+  try {
+    apply(await call('setApproval', id, yes, S.pin, S.code));
+    toast(yes ? 'Approved ✓' : 'Moved back to pending');
+  } catch (err) { toast(errMsg(err)); btn.disabled = false; }
+}
+$('pendList').onclick = ev => { const b = ev.target.closest('[data-approve]'); if (b) approve(b.dataset.approve, true, b); };
+$('apprList').onclick = ev => { const b = ev.target.closest('[data-unapprove]'); if (b) approve(b.dataset.unapprove, false, b); };
+
+/* ---------- access code ---------- */
+$('codeBtn').onclick = () => { store.set('code', $('codeInput').value.trim()); $('lock').classList.add('hidden'); $('loading').classList.remove('hidden'); load(); };
+$('codeInput').onkeydown = e => { if (e.key === 'Enter') $('codeBtn').click(); };
+
+load();
+</script>
+</body>
+</html>
